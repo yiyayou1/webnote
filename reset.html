@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>重置密码 · WebNote</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --accent: #c8592a;
+      --paper: #faf8f4;
+      --ink: #2c2416;
+      --ink2: #7a6e5f;
+      --ink3: #b5a99a;
+      --border: #e4ddd3;
+      --r: 10px;
+    }
+    body {
+      min-height: 100vh;
+      background: var(--paper);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'PingFang SC', 'Hiragino Sans GB', -apple-system, sans-serif;
+      color: var(--ink); padding: 24px;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px 36px;
+      width: 100%; max-width: 420px;
+      box-shadow: 0 4px 24px rgba(44,36,22,0.09);
+    }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      justify-content: center; margin-bottom: 8px;
+    }
+    .logo-mark {
+      width: 36px; height: 36px; background: var(--accent); color: #fff;
+      font-size: 18px; font-weight: 700; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: Georgia, serif;
+    }
+    .logo-text {
+      font-size: 22px; font-weight: 700; color: var(--ink);
+      font-family: Georgia, serif;
+    }
+    .subtitle {
+      text-align: center; color: var(--ink2); font-size: 14px;
+      margin-bottom: 32px; line-height: 1.6;
+    }
+    label {
+      display: block; font-size: 13px; color: var(--ink2);
+      margin-bottom: 6px; font-weight: 500;
+    }
+    input {
+      width: 100%; padding: 11px 14px;
+      border: 1px solid var(--border); border-radius: var(--r);
+      font-size: 14px; font-family: inherit; color: var(--ink);
+      background: var(--paper); outline: none;
+      transition: border-color 0.15s; margin-bottom: 16px;
+    }
+    input:focus { border-color: var(--accent); background: #fff; }
+    .hint {
+      font-size: 12px; color: var(--ink3); margin-top: -10px;
+      margin-bottom: 16px;
+    }
+    .btn {
+      width: 100%; padding: 12px;
+      background: var(--accent); color: #fff; border: none;
+      border-radius: var(--r); font-size: 15px; font-weight: 600;
+      font-family: inherit; cursor: pointer; transition: background 0.15s;
+    }
+    .btn:hover { background: #b04a20; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .msg {
+      margin-top: 18px; padding: 12px 14px;
+      border-radius: var(--r); font-size: 13px; text-align: center;
+      display: none; line-height: 1.6;
+    }
+    .msg.success { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; display: block; }
+    .msg.error   { background: #fff0ee; color: #dc2626; border: 1px solid #fca5a5; display: block; }
+    .back {
+      display: block; text-align: center; margin-top: 20px;
+      font-size: 13px; color: var(--ink3); text-decoration: none;
+    }
+    .back:hover { color: var(--ink2); }
+    .step { display: none; }
+    .step.active { display: block; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <div class="logo-mark">W</div>
+    <span class="logo-text">WebNote</span>
+  </div>
+
+  <!-- Step 1: 输入 Supabase URL（首次需要） -->
+  <div class="step" id="step-config">
+    <p class="subtitle">请先输入你的 Supabase 项目地址<br>才能重置密码</p>
+    <label>Project URL</label>
+    <input id="cfgUrl" type="url" placeholder="https://xxxx.supabase.co">
+    <button class="btn" onclick="confirmConfig()">确认</button>
+    <div class="msg" id="cfgMsg"></div>
+  </div>
+
+  <!-- Step 2: 设置新密码 -->
+  <div class="step" id="step-reset">
+    <p class="subtitle">设置你的新密码</p>
+    <label>新密码</label>
+    <input id="newPassword" type="password" placeholder="至少 6 位">
+    <label>确认新密码</label>
+    <input id="confirmPassword" type="password" placeholder="再次输入新密码">
+    <p class="hint">密码长度至少 6 位</p>
+    <button class="btn" id="resetBtn" onclick="doReset()">确认修改密码</button>
+    <div class="msg" id="resetMsg"></div>
+  </div>
+
+  <!-- Step 3: 成功 -->
+  <div class="step" id="step-done">
+    <p class="subtitle" style="margin-top:16px">
+      ✅ 密码已重置成功<br><br>
+      请关闭此页面，回到 WebNote 插件重新登录。
+    </p>
+  </div>
+
+  <a class="back" href="javascript:void(0)" onclick="window.close()">关闭此页面</a>
+</div>
+
+<script>
+// ── 从 URL hash 解析 Supabase 返回的 token ──────────────────────────────────
+const hash   = window.location.hash.substring(1);
+const params = new URLSearchParams(hash);
+const accessToken  = params.get("access_token");
+const refreshToken = params.get("refresh_token");
+const errorCode    = params.get("error_code");
+const errorDesc    = params.get("error_description");
+
+let supabaseUrl  = localStorage.getItem("wn_reset_supabase_url") || "";
+let supabaseKey  = "";  // 从 URL 推断或让用户输入
+
+// ── 启动 ───────────────────────────────────────────────────────────────────
+
+window.onload = () => {
+  // 如果有错误
+  if (errorCode) {
+    showStep("step-reset");
+    showMsg("resetMsg", "error",
+      errorDesc?.replace(/\+/g," ") || "链接已失效，请重新申请重置密码。");
+    document.getElementById("resetBtn").disabled = true;
+    return;
+  }
+
+  // 没有 access_token，链接有问题
+  if (!accessToken) {
+    showStep("step-reset");
+    showMsg("resetMsg", "error", "链接无效或已过期，请重新申请重置密码。");
+    document.getElementById("resetBtn").disabled = true;
+    return;
+  }
+
+  // 需要知道 Supabase URL 才能调 API
+  if (!supabaseUrl) {
+    showStep("step-config");
+  } else {
+    showStep("step-reset");
+  }
+};
+
+// ── 确认 Supabase URL ──────────────────────────────────────────────────────
+
+function confirmConfig() {
+  const url = document.getElementById("cfgUrl").value.trim().replace(/\/$/, "");
+  if (!url.startsWith("https://") || !url.includes("supabase.co")) {
+    showMsg("cfgMsg", "error", "请输入正确的 Supabase Project URL");
+    return;
+  }
+  supabaseUrl = url;
+  localStorage.setItem("wn_reset_supabase_url", url);
+  showStep("step-reset");
+}
+
+// ── 重置密码 ────────────────────────────────────────────────────────────────
+
+async function doReset() {
+  const newPwd     = document.getElementById("newPassword").value;
+  const confirmPwd = document.getElementById("confirmPassword").value;
+
+  if (!newPwd || newPwd.length < 6) {
+    showMsg("resetMsg", "error", "密码至少 6 位"); return;
+  }
+  if (newPwd !== confirmPwd) {
+    showMsg("resetMsg", "error", "两次输入的密码不一致"); return;
+  }
+
+  const btn = document.getElementById("resetBtn");
+  btn.disabled = true;
+  btn.textContent = "修改中…";
+
+  try {
+    // 先用 access_token 设置 session，再更新密码
+    const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      method: "PUT",
+      headers: {
+        "Content-Type":  "application/json",
+        "apikey":        await getAnonKey(),
+        "Authorization": `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({ password: newPwd })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || data.error_description || "修改失败");
+    }
+
+    showStep("step-done");
+  } catch (err) {
+    showMsg("resetMsg", "error", err.message || "修改失败，请重试");
+    btn.disabled = false;
+    btn.textContent = "确认修改密码";
+  }
+}
+
+// 从 Supabase 项目获取 anon key（通过 well-known 端点）
+async function getAnonKey() {
+  // anon key 存在 localStorage（如果之前配置过）
+  const cached = localStorage.getItem("wn_reset_anon_key");
+  if (cached) return cached;
+
+  // 尝试从用户输入的 URL 参数里获取
+  const urlParams = new URLSearchParams(window.location.search);
+  const keyFromUrl = urlParams.get("key");
+  if (keyFromUrl) {
+    localStorage.setItem("wn_reset_anon_key", keyFromUrl);
+    return keyFromUrl;
+  }
+
+  // 让用户手动输入（最后兜底）
+  const key = prompt("请输入你的 Supabase Anon Key（在 Settings → API 里）：");
+  if (key) { localStorage.setItem("wn_reset_anon_key", key); return key; }
+  throw new Error("需要 Anon Key 才能完成操作");
+}
+
+// ── 工具 ───────────────────────────────────────────────────────────────────
+
+function showStep(id) {
+  document.querySelectorAll(".step").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+function showMsg(id, type, text) {
+  const el = document.getElementById(id);
+  el.className = `msg ${type}`;
+  el.textContent = text;
+}
+</script>
+</body>
+</html>
