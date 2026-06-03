@@ -112,5 +112,60 @@
       <a href="reset.html">重置密码</a>
     </p>
   </div>
+<script>
+// 处理 Supabase 验证跳转（注册确认邮件会跳回这里）
+window.addEventListener('load', () => {
+  const hash = window.location.hash.substring(1);
+  const params = new URLSearchParams(hash);
+  const type = params.get('type');
+  const accessToken = params.get('access_token');
+  const errorCode = params.get('error_code');
+  const errorDesc = params.get('error_description');
+
+  if (errorCode) {
+    showMsg('error', decodeURIComponent(errorDesc?.replace(/\+/g,' ') || '验证失败，链接可能已过期'));
+    return;
+  }
+
+  if (type === 'signup' && accessToken) {
+    showMsg('success', '✅ 邮箱验证成功！请关闭此页面，回到 WebNote 插件登录。');
+    return;
+  }
+
+  if (type === 'recovery' && accessToken) {
+    // 重置密码跳转到 reset.html
+    window.location.href = '/webnote/reset.html' + window.location.hash;
+    return;
+  }
+});
+
+function showMsg(type, text) {
+  const div = document.createElement('div');
+  div.style.cssText = `
+    position:fixed; top:0; left:0; right:0; bottom:0;
+    background:rgba(250,248,244,0.97);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'PingFang SC',-apple-system,sans-serif;
+    z-index:9999;
+  `;
+  const card = document.createElement('div');
+  card.style.cssText = `
+    background:#fff; border-radius:16px; padding:40px 36px;
+    max-width:420px; text-align:center;
+    box-shadow:0 4px 24px rgba(44,36,22,0.09);
+    border:1px solid #e4ddd3;
+  `;
+  const logo = document.createElement('div');
+  logo.style.cssText = 'display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:20px';
+  logo.innerHTML = '<div style="width:36px;height:36px;background:#c8592a;color:#fff;font-size:18px;font-weight:700;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:Georgia,serif">W</div><span style="font-size:22px;font-weight:700;font-family:Georgia,serif">WebNote</span>';
+  const msg = document.createElement('p');
+  msg.style.cssText = `font-size:15px;line-height:1.7;color:${type==='success'?'#16a34a':'#dc2626'}`;
+  msg.textContent = text;
+  card.appendChild(logo);
+  card.appendChild(msg);
+  div.appendChild(card);
+  document.body.appendChild(div);
+}
+</script>
 </body>
 </html>
