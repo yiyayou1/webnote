@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>配置教程 · WebNote</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --accent: #c8592a; --paper: #faf8f4; --ink: #2c2416; --ink2: #7a6e5f; --border: #e4ddd3; }
+    body { background: var(--paper); color: var(--ink); font-family: 'PingFang SC', -apple-system, sans-serif; padding: 40px 24px; max-width: 680px; margin: 0 auto; }
+    .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 32px; }
+    .logo-mark { width: 36px; height: 36px; background: var(--accent); color: #fff; font-size: 18px; font-weight: 700; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: Georgia, serif; }
+    .logo-text { font-size: 22px; font-weight: 700; font-family: Georgia, serif; }
+    h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; font-family: Georgia, serif; }
+    .subtitle { color: var(--ink2); font-size: 14px; margin-bottom: 32px; line-height: 1.6; }
+    .step { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+    .step-num { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: var(--accent); color: #fff; border-radius: 50%; font-size: 12px; font-weight: 700; margin-right: 8px; flex-shrink: 0; }
+    .step-title { font-size: 15px; font-weight: 600; display: flex; align-items: center; margin-bottom: 8px; }
+    .step-body { font-size: 13.5px; color: var(--ink2); line-height: 1.7; padding-left: 32px; }
+    .step-body a { color: var(--accent); }
+    .step-body strong { color: var(--ink); }
+    .sql-box { background: #1e1e1e; border-radius: 8px; padding: 16px; margin: 12px 0; overflow-x: auto; }
+    .sql-box pre { color: #d4d4d4; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6; white-space: pre; }
+    .copy-btn { display: inline-block; margin-top: 8px; padding: 6px 14px; background: var(--accent); color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .copy-btn:hover { background: #b04a20; }
+    .note { background: #fff8f0; border-left: 3px solid var(--accent); padding: 10px 14px; border-radius: 0 8px 8px 0; font-size: 13px; color: var(--ink2); margin-top: 8px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="logo">
+    <div class="logo-mark">W</div>
+    <span class="logo-text">WebNote</span>
+  </div>
+
+  <h1>如何配置你的 Supabase</h1>
+  <p class="subtitle">WebNote 使用你自己的 Supabase 项目存储数据，全程免费，数据完全属于你。按以下步骤操作，约需 5 分钟。</p>
+
+  <div class="step">
+    <div class="step-title"><span class="step-num">1</span>注册 Supabase 账号</div>
+    <div class="step-body">
+      打开 <a href="https://supabase.com" target="_blank">supabase.com</a>，点击 <strong>Start your project</strong>，用 GitHub 或邮箱免费注册。<br>
+      无需绑定信用卡，免费版足够个人使用（500MB 数据库）。
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-title"><span class="step-num">2</span>创建新项目</div>
+    <div class="step-body">
+      登录后点击 <strong>New Project</strong>，填写：<br>
+      · 项目名称（随意，如 webnote）<br>
+      · 数据库密码（记住，以后可能用到）<br>
+      · 地域（选离你最近的）<br><br>
+      点击 <strong>Create new project</strong>，等待约 1 分钟初始化完成。
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-title"><span class="step-num">3</span>建立数据库表</div>
+    <div class="step-body">
+      进入项目后，点击左侧菜单的 <strong>SQL Editor</strong>，把下方 SQL 完整粘贴进去，点击 <strong>Run</strong> 执行。
+      <div class="sql-box">
+        <pre id="sqlCode">-- 高亮表
+CREATE TABLE highlights (
+  id text PRIMARY KEY,
+  user_id uuid REFERENCES auth.users ON DELETE CASCADE,
+  url text, title text, text text, color text,
+  mark_type text, annotation jsonb, sticky jsonb,
+  start_xpath text, start_text_node_index int,
+  start_offset int, end_xpath text,
+  end_text_node_index int, end_offset int,
+  anchor_text text, timestamp bigint,
+  updated_at timestamptz DEFAULT now()
+);
+
+-- 笔记表
+CREATE TABLE notes (
+  id text PRIMARY KEY,
+  user_id uuid REFERENCES auth.users ON DELETE CASCADE,
+  content text, url text, title text,
+  source text, comment text, timestamp bigint,
+  updated_at timestamptz DEFAULT now()
+);
+
+-- 别名表
+CREATE TABLE aliases (
+  user_id uuid REFERENCES auth.users ON DELETE CASCADE,
+  key text, alias text,
+  PRIMARY KEY (user_id, key)
+);
+
+-- 开启行级安全（每个用户只能访问自己的数据）
+ALTER TABLE highlights ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE aliases ENABLE ROW LEVEL SECURITY;
+
+-- 安全策略
+CREATE POLICY "own" ON highlights FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "own" ON notes FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "own" ON aliases FOR ALL USING (auth.uid() = user_id);</pre>
+      </div>
+      <button class="copy-btn" onclick="copySql()">复制 SQL</button>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-title"><span class="step-num">4</span>关闭邮箱验证（重要）</div>
+    <div class="step-body">
+      Supabase 默认要求注册时验证邮箱，但验证邮件里的链接会跳转失败。建议关闭：<br><br>
+      · 进入 <strong>Authentication → Providers → Email</strong><br>
+      · 找到 <strong>Confirm email</strong> 开关，将其<strong>关闭</strong><br>
+      · 点击 <strong>Save</strong> 保存<br><br>
+      <div class="note">关闭后用户注册时不需要验证邮箱，可以直接登录使用。</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-title"><span class="step-num">5</span>获取 API 密钥</div>
+    <div class="step-body">
+      在项目页面，点击左侧菜单 <strong>Settings → API</strong>，找到并复制：<br><br>
+      · <strong>Project URL</strong>（形如 https://xxxx.supabase.co）<br>
+      · <strong>anon public</strong> key（eyJhbGci 开头的长字符串）<br><br>
+      <div class="note">⚠️ 只复制 anon key，不要复制 service_role key，anon key 对用户安全。</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-title"><span class="step-num">6</span>填入 WebNote</div>
+    <div class="step-body">
+      回到 WebNote 插件，把复制的 Project URL 和 anon key 填入连接设置，点击「连接并登录」。<br><br>
+      注册一个新的 WebNote 账号（邮箱+密码），登录后数据会自动同步到你的 Supabase 项目。
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-title"><span class="step-num">7</span>配置邮件跳转地址</div>
+    <div class="step-body">
+      在 Supabase 后台进入 <strong>Authentication → URL Configuration</strong>，填写以下两个地址：<br><br>
+      <strong>Site URL：</strong><br>
+      <code style="background:#1e1e1e;color:#d4d4d4;padding:4px 8px;border-radius:4px;display:block;margin:6px 0;font-size:12px">https://yiyayout1.github.io/webnote</code>
+      <button class="copy-btn" style="margin:4px 0 12px" onclick="copyText('https://yiyayout1.github.io/webnote', this)">复制</button>
+
+      <strong>Redirect URLs（点 Add URL 添加）：</strong><br>
+      <code style="background:#1e1e1e;color:#d4d4d4;padding:4px 8px;border-radius:4px;display:block;margin:6px 0;font-size:12px">https://yiyayout1.github.io/webnote/reset.html</code>
+      <button class="copy-btn" style="margin:4px 0" onclick="copyText('https://yiyayout1.github.io/webnote/reset.html', this)">复制</button>
+
+      <div class="note" style="margin-top:10px">这两个地址是 WebNote 统一提供的重置密码页面，所有用户共用，你的数据仍然只存在你自己的 Supabase 项目里。</div>
+    </div>
+  </div>
+
+  <script>
+    function copyText(text, btn) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.cssText = "position:fixed;top:0;left:0;opacity:0;";
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      const orig = btn.textContent;
+      btn.textContent = ok ? "✓ 已复制" : "请手动复制";
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+
+    function copySql() {
+      copyText(document.getElementById("sqlCode").textContent,
+               document.querySelector(".copy-btn"));
+    }
+  </script>
+</body>
+</html>

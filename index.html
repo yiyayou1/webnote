@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebNote</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --accent: #c8592a; --paper: #faf8f4; --ink: #2c2416; --ink2: #7a6e5f; --border: #e4ddd3; }
+    body {
+      min-height: 100vh; background: var(--paper);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'PingFang SC', -apple-system, sans-serif;
+      color: var(--ink); padding: 24px;
+    }
+    .card {
+      text-align: center; max-width: 480px; width: 100%;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 12px;
+      justify-content: center; margin-bottom: 24px;
+    }
+    .logo-mark {
+      width: 48px; height: 48px; background: var(--accent); color: #fff;
+      font-size: 24px; font-weight: 700; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: Georgia, serif;
+    }
+    .logo-text {
+      font-size: 28px; font-weight: 700; color: var(--ink);
+      font-family: Georgia, serif;
+    }
+    .tagline {
+      font-size: 16px; color: var(--ink2); line-height: 1.7;
+      margin-bottom: 32px;
+    }
+    .features {
+      display: flex; flex-direction: column; gap: 12px;
+      text-align: left; margin-bottom: 32px;
+    }
+    .feature {
+      background: #fff; border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 18px;
+      display: flex; align-items: flex-start; gap: 12px;
+    }
+    .feature-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+    .feature-text h4 { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+    .feature-text p { font-size: 12.5px; color: var(--ink2); line-height: 1.5; }
+    .cta {
+      display: inline-block; padding: 12px 28px;
+      background: var(--accent); color: #fff;
+      border-radius: 10px; text-decoration: none;
+      font-size: 15px; font-weight: 600;
+      transition: background 0.15s;
+    }
+    .cta:hover { background: #b04a20; }
+    .footer {
+      margin-top: 24px; font-size: 12px; color: var(--ink2);
+    }
+    .footer a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <div class="logo-mark">W</div>
+      <span class="logo-text">WebNote</span>
+    </div>
+
+    <p class="tagline">
+      像读纸质书一样读电子书<br>
+      在任意网页上划线、高亮、批注、记笔记
+    </p>
+
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">🖊</div>
+        <div class="feature-text">
+          <h4>全网页划线高亮</h4>
+          <p>支持4种颜色高亮、下划线、波浪线、删除线，刷新页面高亮依然保留</p>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📝</div>
+        <div class="feature-text">
+          <h4>行内批注</h4>
+          <p>批注直接显示在高亮文字旁边，支持文字和手绘图，像在书页上写眉批</p>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📚</div>
+        <div class="feature-text">
+          <h4>书架式管理</h4>
+          <p>按网站自动分组，像管理书架一样管理你的阅读记录</p>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">☁️</div>
+        <div class="feature-text">
+          <h4>数据完全属于你</h4>
+          <p>使用你自己的 Supabase 项目存储数据，不经过任何第三方服务器</p>
+        </div>
+      </div>
+    </div>
+
+    <a class="cta" href="https://chrome.google.com/webstore" target="_blank">
+      安装 Chrome 插件
+    </a>
+
+    <p class="footer">
+      数据主权归用户所有 ·
+      <a href="reset.html">重置密码</a>
+    </p>
+  </div>
+</body>
+</html>
